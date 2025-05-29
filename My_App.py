@@ -9,13 +9,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import tableau_migration
-from print_result import print_result
-from Hooks.Filters.user_filters import PySkipLocalUser
-from tableau-migration import (
+from tableau_migration import (
     MigrationManifestSerializer,
     MigrationManifest,
     IUser
 )
+
+from print_result import print_result
+from Hooks.Filters.user_filters import PySkipLocalUser
 
 # Setup logging to Streamlit
 log_dir = "migration/migration_logs"
@@ -23,8 +24,8 @@ os.makedirs(log_dir, exist_ok=True)
 log_filename = os.path.join(log_dir, f"migration_log_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log")
 
 logging.basicConfig(
-    filename=log_filename, 
-    level=logging.DEBUG, 
+    filename=log_filename,
+    level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
@@ -41,10 +42,8 @@ log_area = st.empty()  # placeholder for logs
 def load_manifest(manifest_path: str) -> MigrationManifest | None:
     manifest = serializer.load(manifest_path)
     if manifest is not None:
-        # Instead of input(), use Streamlit confirmation dialog
         use_manifest = st.session_state.get('use_manifest', None)
         if use_manifest is None:
-            # Ask user in sidebar or modal (Streamlit doesn't have modal, so sidebar)
             use_manifest = st.sidebar.radio(
                 f'Existing Manifest found at {manifest_path}. Use it?', ('Yes', 'No')
             )
@@ -55,11 +54,8 @@ def load_manifest(manifest_path: str) -> MigrationManifest | None:
             return manifest
     return None
 
-
 def migrate():
     st.session_state.migration_running = True
-
-    # Clear previous logs in Streamlit
     log_area.empty()
 
     try:
@@ -77,15 +73,15 @@ def migrate():
 
         plan_builder = plan_builder \
             .from_source_tableau_server(
-                server_url=config['SOURCE']['URL'], 
-                site_content_url=config['SOURCE']['SITE_CONTENT_URL'], 
-                access_token_name=config['SOURCE']['ACCESS_TOKEN_NAME'], 
+                server_url=config['SOURCE']['URL'],
+                site_content_url=config['SOURCE']['SITE_CONTENT_URL'],
+                access_token_name=config['SOURCE']['ACCESS_TOKEN_NAME'],
                 access_token=os.environ.get('TABLEAU_MIGRATION_SOURCE_TOKEN', config['SOURCE']['ACCESS_TOKEN']),
                 create_api_simulator=os.environ.get('TABLEAU_MIGRATION_SOURCE_SIMULATION', 'False') == 'True') \
             .to_destination_tableau_cloud(
-                pod_url=config['DESTINATION']['URL'], 
-                site_content_url=config['DESTINATION']['SITE_CONTENT_URL'], 
-                access_token_name=config['DESTINATION']['ACCESS_TOKEN_NAME'], 
+                pod_url=config['DESTINATION']['URL'],
+                site_content_url=config['DESTINATION']['SITE_CONTENT_URL'],
+                access_token_name=config['DESTINATION']['ACCESS_TOKEN_NAME'],
                 access_token=os.environ.get('TABLEAU_MIGRATION_DESTINATION_TOKEN', config['DESTINATION']['ACCESS_TOKEN']),
                 create_api_simulator=os.environ.get('TABLEAU_MIGRATION_DESTINATION_SIMULATION', 'False') == 'True') \
             .for_server_to_cloud() \
@@ -114,7 +110,6 @@ def migrate():
         results = migration.execute(plan, prev_manifest)
         serializer.save(results.manifest, manifest_path)
 
-        # Use print_result (assumed to print to console). We'll also log here.
         print_result(results)
         st.success("Migration completed successfully.")
         logger.info("Migration completed successfully.")
@@ -126,9 +121,8 @@ def migrate():
     finally:
         st.session_state.migration_running = False
 
-
+# Start button
 if st.button("Start Migration", disabled=st.session_state.migration_running):
-    # Run migration in separate thread to keep UI responsive
     threading.Thread(target=migrate, daemon=True).start()
 
 if st.session_state.migration_running:
