@@ -11,7 +11,7 @@ load_dotenv()
 import tableau_migration
 from print_result import print_result
 from Hooks.Filters.user_filters import PySkipLocalUser
-from tableau_migration import (
+from tableau-migration import (
     MigrationManifestSerializer,
     MigrationManifest,
     IUser
